@@ -5,7 +5,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 
-import default
+import settings as uapi
 from spider163 import settings
 from spider163.utils import pysql
 from spider163.utils import pylog
@@ -14,11 +14,11 @@ from spider163.utils import pylog
 class Lyric:
 
     def __init__(self):
-        self.__headers = default.header
+        self.__headers = uapi.header
         self.session = settings.Session()
 
     def view_lyric(self, song_id):
-        url = default.lyric_url.format(str(song_id))
+        url = uapi.lyric_url.format(str(song_id))
         s = requests.session()
         try:
             s = BeautifulSoup(s.get(url, headers=self.__headers).content, "html.parser")
@@ -28,8 +28,10 @@ class Lyric:
                 self.session.query(pysql.Music163).filter(pysql.Music163.song_id == song_id).update({"has_lyric": "Y"})
                 self.session.commit()
         except Exception:
+            self.session.query(pysql.Music163).filter(pysql.Music163.song_id == song_id).update({"has_lyric": "E"})
+            self.session.commit()
             pylog.log.error("抓取歌词出现问题，歌曲ID：" + str(song_id))
-            raise
+
 
     def get_lyric(self, song_id):
         self.view_lyric(song_id)
@@ -40,11 +42,11 @@ class Lyric:
         for i in range(count/10):
             ms = self.session.query(pysql.Music163).filter(pysql.Music163.has_lyric == "N").limit(10)
             for m in ms:
-                print("正在抓取歌曲 {} 的歌词……".format(m.song_name.encode("utf-8")))
+                print("正在抓取歌词 ID {} 歌曲 {}".format(m.song_id, pylog.Blue(m.song_name.encode("utf-8"))))
                 self.view_lyric(m.song_id)
         ms = self.session.query(pysql.Music163).filter(pysql.Music163.has_lyric == "N").limit(count%10)
         for m in ms:
-            print("正在抓取歌曲 {} 的歌词……".format(m.song_name.encode("utf-8")))
+            print("正在抓取歌词 ID {} 歌曲 {}".format(m.song_id, pylog.Blue(m.song_name.encode("utf-8"))))
             self.view_lyric(m.song_id)
 
 

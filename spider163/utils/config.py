@@ -3,6 +3,7 @@
 
 import ConfigParser
 import os
+import re
 
 PATH = os.environ.get("HOME") + "/spider163"
 
@@ -26,5 +27,16 @@ def get_path():
 
 def get_db():
     return cf.get("core", "db")
+
+
+def get_mysql():
+    link = get_db()
+    db = re.search('(?<=/)[^/]+(?=\?)', link).group(0)
+    uri = re.search('.*(?=/)', link).group(0)
+    return {"db": db, "uri": uri}
+
+def get_port():
+    return cf.get("core", "port")
+
 
 

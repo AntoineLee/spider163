@@ -10,14 +10,16 @@ from spider163.spider import music
 from spider163.spider import comment
 from spider163.spider import lyric
 from spider163.spider import search
+from spider163 import version
+from spider163.www import web
+from spider163.utils import config
 
-VERSION = '2.4.3'
 
 BANNER = """
 Spider163 Application v%s
 Copyright (c) 2017 Cheng Tian Enterprises
 Welcome to Follow My 【微信公众账号】"程天写代码"
-""" % VERSION
+""" % version.VERSION
 
 init(autoreset=True)
 
@@ -59,19 +61,28 @@ class SpiderController(CementBaseController):
              dict(help="")),
             (['-s', '--song'],
              dict(help="歌曲ID")),
+            (['--classify'],
+             dict(help="歌曲风格")),
         ]
 
-    @expose(help="根据推荐歌单抓取网易云音乐歌单数据(-p --page)")
+    @expose(help="获取全部歌曲风格列表(作为抓取歌单的参照)")
+    def classify(self):
+        playlist.Playlist().get_classify()
+
+    @expose(help="根据推荐歌单抓取网易云音乐歌单数据(-p --page | --classify)")
     def playlist(self):
         pg = self.app.pargs.page
+        cf = "全部"
         pl = playlist.Playlist()
+        if self.app.pargs.classify !=None:
+            cf = self.app.pargs.classify
         if pg != None:
-            print(Fore.GREEN + '正在抓取第 {} 页歌单……'.format(pg))
-            pl.view_capture(int(pg))
+            print(Fore.GREEN + '正在抓取 曲风为 {} 的第 {} 页歌单……'.format(cf, pg))
+            pl.view_capture(int(pg), cf)
         else:
             for i in range(36):
-                print(Fore.GREEN + '正在抓取第 {} 页歌单……'.format(i + 1))
-                pl.view_capture(i + 1)
+                print(Fore.GREEN + '正在抓取 曲风为 {} 的第 {} 页歌单……'.format(cf ,i + 1))
+                pl.view_capture(i + 1, cf)
 
     @expose(help="通过歌单抓取网易云音乐歌曲，单次抓取歌单10个(-c --count)")
     def music(self):
@@ -81,7 +92,7 @@ class SpiderController(CementBaseController):
             return
         cnt = int(self.app.pargs.count)
         if cnt <= 0:
-            print ("不合法的--count -c 变量（ > 0 ）")
+            print(Fore.RED + "不合法的--count -c 变量（ > 0 ）")
         else:
             for i in range(cnt):
                 print(Fore.GREEN + '正在执行第 {} 批抓取计划，本次抓取歌单歌曲 10 个\r\n'.format(i + 1))
@@ -139,13 +150,33 @@ class QueryController(CementBaseController):
     def search(self):
         if self.app.pargs.query != None:
             search.searchSong(self.app.pargs.query)
+            search.searchAlbum(self.app.pargs.query)
+            search.searchSinger(self.app.pargs.query)
+            search.searchPlaylist(self.app.pargs.query)
+
+
+class WebController(CementBaseController):
+    class Meta:
+        label = "web"
+        stacked_on = 'base'
+        description = "网络平台"
+        arguments = [
+        ]
+
+    @expose(help="Spider163管理Web平台")
+    def webserver(self):
+        try:
+            webport = config.get_port()
+            web.app.run("0.0.0.0", webport)
+        except Exception:
+            print("正在退出web服务……")
 
 
 class App(CementApp):
     class Meta:
         label = "Spider163"
         base_controller = "base"
-        handlers = [VersionController, DatabaseController, SpiderController, QueryController]
+        handlers = [VersionController, DatabaseController, SpiderController, QueryController, WebController]
 
 
 

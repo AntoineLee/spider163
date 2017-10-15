@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from terminaltables import AsciiTable
 import json
 
-import default
+import settings as uapi
 from spider163 import settings
 from spider163.utils import pysql
 from spider163.utils import pylog
@@ -20,12 +20,12 @@ from spider163.utils import pylog
 class Comment:
 
     def __init__(self):
-        self.__headers = default.header
+        self.__headers = uapi.header
         self.session = settings.Session()
-        text = default.comment_text
-        modulus = default.comment_module
-        pubKey = default.pubKey
-        secKey = default.secKey
+        text = uapi.comment_text
+        modulus = uapi.comment_module
+        pubKey = uapi.pubKey
+        secKey = uapi.secKey
         self.__encSecKey = self.rsaEncrypt(secKey, pubKey, modulus)
 
     def createParams(self, page=1):
@@ -69,7 +69,7 @@ class Comment:
             self.session.query(pysql.Comment163).filter(pysql.Comment163.song_id == song_id).delete()
             self.session.commit()
         data = {'params': self.createParams(page), 'encSecKey': self.__encSecKey}
-        url = default.comment_url.format(str(song_id))
+        url = uapi.comment_url.format(str(song_id))
         try:
             req = requests.post(url, headers=self.__headers, data=data, timeout=10)
             for comment in req.json()['comments']:
@@ -127,17 +127,17 @@ class Comment:
             if count < 10:
                 msc = self.session.query(pysql.Music163).filter(pysql.Music163.over == "N").limit(count)
                 for m in msc:
-                    print("抓取歌曲 {} 热评中……".format(m.song_name.encode('utf-8')))
+                    print("抓取热评 ID {} 歌曲 {}".format(m.song_id, pylog.Blue(m.song_name.encode('utf-8'))))
                     self.views_capture(m.song_id, 1, 1)
             else:
                 for i in range(count / 10):
                     msc = self.session.query(pysql.Music163).filter(pysql.Music163.over == "N").limit(10)
                     for m in msc:
-                        print("抓取歌曲 {} 热评中……".format(m.song_name.encode('utf-8')))
+                        print("抓取热评 ID {} 歌曲 {}".format(m.song_id, pylog.Blue(m.song_name.encode('utf-8'))))
                         self.views_capture(m.song_id, 1, 1)
                 msc = self.session.query(pysql.Music163).filter(pysql.Music163.over == "N").limit(count % 10)
                 for m in msc:
-                    print("抓取歌曲 {} 热评中……".format(m.song_name.encode('utf-8')))
+                    print("抓取热评 ID {} 歌曲 {}".format(m.song_id, pylog.Blue(m.song_name.encode('utf-8'))))
                     self.views_capture(m.song_id, 1, 1)
         except:
             self.session.rollback()
@@ -146,7 +146,7 @@ class Comment:
 
     def get_music(self, music_id):
         self.view_capture(int(music_id), 1)
-        url = default.music_api.format(music_id, music_id)
+        url = uapi.music_api.format(music_id, music_id)
         s = requests.session()
         s = BeautifulSoup(s.get(url, headers=self.__headers).content, "html.parser")
         music = json.loads(s.text)['songs']
@@ -196,4 +196,3 @@ if __name__ == "__main__":
     tmp = Comment()
     tmp.view_links(326735)
     tmp.views_capture(28793140, 1, 1)
-    # tmp.viewsCapture(28793142,1,2)

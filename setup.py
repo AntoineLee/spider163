@@ -1,16 +1,39 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*
 
-from setuptools import setup, find_packages
-from spider163.bin import cli
+from setuptools import setup, find_packages, Command
+import os
+import imp
+
+
+class CleanCommand(Command):
+    """Custom clean command to tidy up the project root."""
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        os.system('rm -vrf ./build ./dist ./*.pyc ./*.tgz ./*.egg-info')
+
+
+version = imp.load_source(
+    'spider163.version', os.path.join('spider163', 'version.py')).VERSION
+
 setup(
-      version=cli.VERSION,
+      version=version,
       name='spider163',
-      author='Chengyumeng',
+      author='ChengTian',
       url='https://github.com/Chengyumeng/spider163',
-      author_email='doublexuan.top@gmail.com',
+      author_email='792400644@qq.com',
       packages=find_packages(),
+      include_package_data=True,
       scripts=['spider163/bin/spider163'],
+      license='MIT License',
+      zip_safe=False,
       install_requires=[
             "beautifulsoup4==4.6.0",
             "bs4==0.0.1",
@@ -27,9 +50,15 @@ setup(
             "requests==2.18.4",
             "shellescape==3.4.1",
             "SQLAlchemy==1.1.14",
+            "SQLAlchemy-Utils==0.32.18",
             "terminaltables==3.1.0",
             "urllib3==1.22",
-            "Logbook==1.1.0"
-      ]
+            "Logbook==1.1.0",
+            "colorama==0.3.9",
+            "Flask==0.12.2",
 
+      ],
+      cmdclass={
+            'clean': CleanCommand,
+      },
 )
