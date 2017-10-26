@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, Integer, String, DateTime, Index, extract
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from spider163 import settings
+import random
+
 import re
 
 Base = declarative_base()
@@ -64,6 +66,42 @@ def single(table, k, v):
         return True
     else:
         return False
+
+
+def stat_playlist():
+    data = {}
+    data["gdType"] = settings.Session.query(func.substring(Playlist163.dsc, 4, 2).label('type'), func.count('*').label('count')).group_by("type").all()
+    data["gdOver"] = settings.Session.query(Playlist163.over.label('over'), func.count('*').label('count')).group_by("over").all()
+    return data
+
+
+def stat_music():
+    data = {"author-comment-count": []}
+    cd = settings.Session.query(Music163.author.label('author'), func.sum(Music163.comment).label('count')).group_by("author").order_by(func.sum(Music163.comment).label('count').label('count').desc()).limit(30).all()
+    for m in cd:
+        data["author-comment-count"].append([m[0], int(m[1])])
+    data["music-comment-count"] = settings.Session.query(Music163.song_name, Music163.comment.label("count")).order_by(Music163.comment.label("count").desc()).limit(30).all()
+    return data
+
+
+def stat_data():
+    data = {}
+    data["countPlaylist"] = int(settings.engine.execute("select(select count(*) from playlist163 where over = 'Y')*100 / count(*) from playlist163").fetchone()[0]);
+    data["countComment"] = int(settings.engine.execute("select(select count(*) from music163 where over = 'Y')*100 / count(*) from music163").fetchone()[0]);
+    data["countLyric"] = int(settings.engine.execute("select(select count(*) from music163 where has_lyric = 'Y')*100 / count(*) from music163").fetchone()[0]);
+    return data
+
+
+def random_data():
+    rng = settings.Session.query(func.min(Comment163.id), func.max(Comment163.id)).all()[0]
+    data = {}
+    for i in range(12):
+        v = random.uniform(rng[0], rng[1])
+        d = settings.engine.execute("select txt,liked,a.author,song_name,a.song_id,b.author from comment163 a inner join music163 b on a.song_id= b.song_id where a.id>" +str(v) + " limit 1").fetchone()
+        data[d[3]] = [d[0], str(d[1]), d[2], str(d[4]), d[5]]
+    return data
+
+
 
 
 def initdb():
